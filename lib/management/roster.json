@@ -1,0 +1,9 @@
+{
+  "enterprise": "attention-allocation-readout",
+  "offices": [
+    {
+      "id": "attention-allocation-broker",
+      "record": "content/offices/attention-allocation-broker.json"
+    }
+  ]
+}

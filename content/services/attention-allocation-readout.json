@@ -1,0 +1,25 @@
+{
+  "id": "attention-allocation-readout",
+  "provider": "attention-allocation-readout",
+  "serviceLevel": "union",
+  "status": "available-local-boundaries",
+  "operations": [
+    "solicit-service over ActivityStreams",
+    "invoke-service over ActivityStreams"
+  ],
+  "accepts": "a positive budget and a non-empty list of candidate items (unique id, positive finite cost, positive finite benefit) satisfying the monotone-budget allocation bounds",
+  "returns": "the funded subset, total cost and benefit, considered and funded counts, tie-set choice bits (null when the exact-enumeration limit is exceeded), an exactness flag, source attestation, evidence qualification, locally measured resource use, and—on the ActivityStreams face—a provider-local receipt, book entry, and causal record. The solicited offer's terms carry an explicit resource-price declaration naming which of the six canonical resource dimensions (asset, compute, erasure, gas, time, wit) are charged and how each is measured; compute (cpu-microseconds via process.cpuUsage, peak-rss bytes via process.resourceUsage) and time (milliseconds via process.hrtime) are priced by measurement method only, and asset/gas/wit/erasure are not priced — erasure specifically because this die's math (tie-set choiceBits) is not a Landauer/coordination carrier, so no erasure price is invented. The completion readout reports the actual measured vector for that execution alongside the quoted terms, so quoted-vs-actual is auditable. No cash price or x402 settlement is created.",
+  "refusal": [
+    "invalid ActivityStreams solicitation or invocation",
+    "malformed or mathematically inadmissible budget or candidate list",
+    "admitted Obsmetrologia source digest drift",
+    "request for a formal extraction or proof of implementation equivalence",
+    "request for cross-settlement mutation or unsettled pricing authority"
+  ],
+  "notImplemented": [
+    "ActivityPub transport",
+    "x402 receipt settlement",
+    "public-network deployment",
+    "formally verified extraction from Lean"
+  ]
+}

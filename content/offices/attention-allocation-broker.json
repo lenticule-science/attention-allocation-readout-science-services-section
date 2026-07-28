@@ -1,0 +1,17 @@
+{
+  "id": "attention-allocation-broker",
+  "name": "attention allocation broker",
+  "kind": "office",
+  "normative-structure": "The qualification, source attestation, conformance evidence, cost readout, response, and refusal of a monotone-budget allocation projection are this office's own acts.",
+  "deontic-profile": {
+    "operate-activitystreams-contract-boundary": "duty",
+    "attest-admitted-source-bytes": "duty",
+    "qualify-conformance-without-overclaim": "duty",
+    "issue-bounded-readout": "deontic-power",
+    "refuse-source-drift-or-invalid-input": "deontic-power",
+    "resist-cross-settlement-write": "deontic-immunity"
+  },
+  "jurisdiction": "attention-allocation-readout",
+  "part-of": "obsmetrological-services-section",
+  "reports-to": []
+}

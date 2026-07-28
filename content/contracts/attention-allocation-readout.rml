@@ -1,0 +1,11 @@
+#lang rmn/v2
+(map
+  ("type" "AttentionAllocationReadoutLaw")
+  ("version" 1)
+  ("provider" "urn:ame:attention-allocation-readout")
+  ("precondition" "The customer supplies a positive budget and a non-empty list of candidate items, each carrying a unique non-empty id and a positive finite cost and benefit, together with source authority and a capability attenuated to provider-local RWIL evidence.")
+  ("operation" "The provider attests pinned Obsmetrologia source bytes and evaluates the monotone-budget greedy allocation over the admitted candidates without writing the customer interior.")
+  ("postcondition" "The provider returns the funded subset, total cost and benefit, considered and funded counts, tie-set choice bits when computed exactly, source attestations, theorem references, conformance scope, typed resource measures, and a witnessed service receipt. No formal-extraction, price-settlement, implementation-equivalence, or customer-authority claim is created.")
+  ("refusal" "Refuse a malformed budget or candidate list, changed normalized terms, missing exact capability, source drift, cross-settlement writes, fake payment equivalence, or an unqualified mathematical claim.")
+  ("protocol" "ActivityStreams-2.0")
+  ("evidence" "RWIL-RDF"))
