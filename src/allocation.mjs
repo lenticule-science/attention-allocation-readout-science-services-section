@@ -34,7 +34,7 @@ import { readFileSync } from "node:fs";
 const SOURCES = [
   {
     declarationFile: "Obsmetrologia/Cohomology/AttentionAllocation.lean",
-    url: new URL("../../../../../src/services/obsmetrologia/Obsmetrologia/Cohomology/AttentionAllocation.lean", import.meta.url),
+    url: new URL("../../../../../lib/obsmetrologia/Obsmetrologia/Cohomology/AttentionAllocation.lean", import.meta.url),
     sha256: "d4b79f8f28da3276b684d8271f1f9c8ffe87d96220c7081440bb6a3f1ad646f4",
   },
 ];
