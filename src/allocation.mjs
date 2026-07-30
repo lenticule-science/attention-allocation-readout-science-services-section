@@ -37,6 +37,7 @@ const SOURCES = [
     url: new URL("../../../../../lib/obsmetrologia/Obsmetrologia/Cohomology/AttentionAllocation.lean", import.meta.url),
     sha256: "d4b79f8f28da3276b684d8271f1f9c8ffe87d96220c7081440bb6a3f1ad646f4",
   },
+  { declarationFile: "Obsmetrologia/Cohomology/AllocationSolver.lean", url: new URL("../../../../../lib/obsmetrologia/Obsmetrologia/Cohomology/AllocationSolver.lean", import.meta.url), sha256: "690143f5487ffda3527d9af80ea0c42cae09636219158f3f66fb43c390849393" },
 ];
 
 const DECLARATIONS = [
@@ -49,6 +50,10 @@ const DECLARATIONS = [
   "Obsmetrologia.Cohomology.Attention.feasible_of_cons",
   "Obsmetrologia.Cohomology.Attention.residual_antitone",
   "Obsmetrologia.Cohomology.Attention.attention_allocation",
+  "Obsmetrologia.Cohomology.Attention.solveL_feasible",
+  "Obsmetrologia.Cohomology.Attention.solveL_optimal",
+  "Obsmetrologia.Cohomology.Attention.solvers_agree_value",
+  "Obsmetrologia.Cohomology.Attention.solveL_isOptimum",
 ];
 
 function sha256(bytes) {
@@ -76,7 +81,7 @@ export function attestMathematicalSources() {
     assurance: {
       kind: "source-pinned-executable-projection",
       conformance: "Lean examples and JavaScript regression vectors exercise the same admitted monotone-budget-allocation cases",
-      limitation: "the JavaScript is separately implemented and is not a formally verified extraction from Lean; it also extends the Lean's exact tie-set to a small relative-tolerance band around the achieved optimum, and falls back to a bounded-regret greedy heuristic above a fixed candidate-count limit rather than claiming an exactness the Lean statement does not license there",
+      limitation: "the JavaScript is separately implemented and is not a formally verified extraction from Lean; theorem receipts require safe natural settlement units and the exact recursive solver; greedy remains outside those claims",
     },
   };
 }
@@ -108,7 +113,9 @@ function exactAllocate(candidates, budget) {
   let bestBenefit = -Infinity;
   let bestMask = 0;
   const feasibleMasks = [];
-  for (let mask = 0; mask < (1 << n); mask += 1) {
+  const masks = (length) => length === 0 ? [0] : (() => { const tail = masks(length - 1).map((mask) => mask << 1); return [...tail, ...tail.map((mask) => mask | 1)]; })();
+  // Lean `subs`: tail subsets, then those same subsets with current head consed.
+  for (const mask of masks(n)) {
     let cost = 0;
     let benefit = 0;
     for (let i = 0; i < n; i += 1) {
@@ -181,7 +188,10 @@ function greedyAllocate(candidates, budget) {
 export function allocateBudget(candidates, budget) {
   const positive = candidates.filter((c) => c.cost > 0 && c.benefit > 0 && Number.isFinite(c.cost) && Number.isFinite(c.benefit));
   if (!(budget > 0) || positive.length === 0) return EMPTY_RESULT;
-  return positive.length <= MAX_EXACT_CANDIDATES ? exactAllocate(positive, budget) : greedyAllocate(positive, budget);
+  const theoremEligible = isSafeNat(budget) && positive.every((c) => isSafeNat(c.cost) && isSafeNat(c.benefit))
+    && positive.reduce((sum, c) => sum + c.cost, 0) <= Number.MAX_SAFE_INTEGER
+    && positive.reduce((sum, c) => sum + c.benefit, 0) <= Number.MAX_SAFE_INTEGER;
+  return theoremEligible && positive.length <= MAX_EXACT_CANDIDATES ? exactAllocate(positive, budget) : greedyAllocate(positive, budget);
 }
 
 export function computeAllocation({ budget, candidates } = {}) {
