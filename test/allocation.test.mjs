@@ -7,7 +7,7 @@ test("admitted mathematical source bytes still match", () => {
   const attestation = attestMathematicalSources();
   assert.equal(attestation.sources.every((source) => source.matches), true);
   assert.match(attestation.assurance.limitation, /not a formally verified extraction/);
-  assert.match(attestation.assurance.limitation, /relative-tolerance band/);
+  assert.match(attestation.assurance.limitation, /safe natural settlement units/);
 });
 
 test("the exact optimum is chosen within budget", () => {
@@ -26,6 +26,7 @@ test("the exact optimum is chosen within budget", () => {
   assert.equal(result.fundedCount, 2);
   assert.equal(result.choiceBits, 0);
   assert.equal(result.exact, true);
+  assert.equal(result.theoremReceipt.theorems[0], "Obsmetrologia.Cohomology.Attention.solveL_feasible");
 });
 
 test("a tighter budget funds only the single affordable candidate", () => {
@@ -86,4 +87,20 @@ test("allocateBudget filters non-positive or non-finite candidates before alloca
     { id: "bad-finite", cost: Infinity, benefit: 3 },
   ], 10);
   assert.deepEqual(result.funded, ["a"]);
+});
+
+test("public numeric exact computation never leaks a theorem receipt outside Nat premises", () => {
+  const result = allocateBudget([{ id: "fraction", cost: 1.5, benefit: 2.5 }], 2.5);
+  assert.equal(result.exact, true);
+  assert.equal(result.theoremReceipt, null);
+});
+
+test("unsafe aggregate suppresses theorem receipt", () => {
+  const result = allocateBudget([{ id: "a", cost: Number.MAX_SAFE_INTEGER, benefit: 1 }, { id: "b", cost: 1, benefit: 1 }], Number.MAX_SAFE_INTEGER);
+  assert.equal(result.theoremReceipt, null);
+});
+
+test("Lean solveL chirality keeps the second equal-benefit bead", () => {
+  const result = computeAllocation({ budget: 2, candidates: [{ id: "bead1", cost: 1, benefit: 5 }, { id: "bead2", cost: 2, benefit: 5 }] });
+  assert.deepEqual(result.funded, ["bead2"]);
 });

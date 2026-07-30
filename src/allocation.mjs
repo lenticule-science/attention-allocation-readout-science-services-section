@@ -108,7 +108,7 @@ const EMPTY_RESULT = Object.freeze({
 // counts (items proposed in one solicitation) are expected far below this.
 const MAX_EXACT_CANDIDATES = 20;
 
-function exactAllocate(candidates, budget) {
+function exactAllocate(candidates, budget, theoremEligible = false) {
   const n = candidates.length;
   let bestBenefit = -Infinity;
   let bestMask = 0;
@@ -154,7 +154,10 @@ function exactAllocate(candidates, budget) {
     fundedCount: funded.length,
     choiceBits: tieSetSize > 0 ? Math.log2(tieSetSize) : 0,
     exact: true,
-    theoremReceipt: Object.freeze({ kind: "obsmetrologia.attention.solveL:witness", theorems: Object.freeze(["solveL_feasible", "solveL_optimal", "solvers_agree_value", "solveL_isOptimum"]), premises: "safe natural settlement units; exhaustive powerset search" }),
+    theoremReceipt: theoremEligible ? Object.freeze({ kind: "obsmetrologia.attention.solveL:witness", theorems: Object.freeze([
+      "Obsmetrologia.Cohomology.Attention.solveL_feasible", "Obsmetrologia.Cohomology.Attention.solveL_optimal",
+      "Obsmetrologia.Cohomology.Attention.solvers_agree_value", "Obsmetrologia.Cohomology.Attention.solveL_isOptimum",
+    ]), source: attestMathematicalSources().sources.find((source) => source.file === "Obsmetrologia/Cohomology/AllocationSolver.lean"), premises: "safe natural settlement units; exhaustive powerset search" }) : null,
   });
 }
 
@@ -191,7 +194,7 @@ export function allocateBudget(candidates, budget) {
   const theoremEligible = isSafeNat(budget) && positive.every((c) => isSafeNat(c.cost) && isSafeNat(c.benefit))
     && positive.reduce((sum, c) => sum + c.cost, 0) <= Number.MAX_SAFE_INTEGER
     && positive.reduce((sum, c) => sum + c.benefit, 0) <= Number.MAX_SAFE_INTEGER;
-  return theoremEligible && positive.length <= MAX_EXACT_CANDIDATES ? exactAllocate(positive, budget) : greedyAllocate(positive, budget);
+  return positive.length <= MAX_EXACT_CANDIDATES ? exactAllocate(positive, budget, theoremEligible) : greedyAllocate(positive, budget);
 }
 
 export function computeAllocation({ budget, candidates } = {}) {
