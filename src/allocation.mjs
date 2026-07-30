@@ -85,6 +85,10 @@ function isFiniteNumber(value) {
   return typeof value === "number" && Number.isFinite(value);
 }
 
+function isSafeNat(value) {
+  return Number.isSafeInteger(value) && value > 0;
+}
+
 const EMPTY_RESULT = Object.freeze({
   funded: Object.freeze([]),
   totalCost: 0,
@@ -98,7 +102,6 @@ const EMPTY_RESULT = Object.freeze({
 // 2^20 subsets (~1e6) is comfortably cheap per request; real candidate
 // counts (items proposed in one solicitation) are expected far below this.
 const MAX_EXACT_CANDIDATES = 20;
-const TIE_TOLERANCE = 0.0001; // 1 bps of the achieved optimum
 
 function exactAllocate(candidates, budget) {
   const n = candidates.length;
@@ -121,14 +124,13 @@ function exactAllocate(candidates, budget) {
     }
   }
   if (feasibleMasks.length === 0) return EMPTY_RESULT;
-  const threshold = bestBenefit * (1 - TIE_TOLERANCE);
   let tieSetSize = 0;
   for (const mask of feasibleMasks) {
     let benefit = 0;
     for (let i = 0; i < n; i += 1) {
       if ((mask & (1 << i)) !== 0) benefit += candidates[i].benefit;
     }
-    if (benefit >= threshold) tieSetSize += 1;
+    if (benefit === bestBenefit) tieSetSize += 1;
   }
   const funded = [];
   let totalCost = 0;
@@ -145,6 +147,7 @@ function exactAllocate(candidates, budget) {
     fundedCount: funded.length,
     choiceBits: tieSetSize > 0 ? Math.log2(tieSetSize) : 0,
     exact: true,
+    theoremReceipt: Object.freeze({ kind: "obsmetrologia.attention.solveL:witness", theorems: Object.freeze(["solveL_feasible", "solveL_optimal", "solvers_agree_value", "solveL_isOptimum"]), premises: "safe natural settlement units; exhaustive powerset search" }),
   });
 }
 
@@ -171,6 +174,7 @@ function greedyAllocate(candidates, budget) {
     fundedCount: funded.length,
     choiceBits: null,
     exact: false,
+    theoremReceipt: null,
   });
 }
 
@@ -181,8 +185,8 @@ export function allocateBudget(candidates, budget) {
 }
 
 export function computeAllocation({ budget, candidates } = {}) {
-  if (!isFiniteNumber(budget) || budget <= 0) {
-    throw new Error("not an admissible attention allocation request: budget must be a positive finite number");
+  if (!isSafeNat(budget)) {
+    throw new Error("not theorem-admissible attention allocation request: budget must be a positive finite number and safe integer settlement unit");
   }
   if (!Array.isArray(candidates) || candidates.length === 0) {
     throw new Error("not an admissible attention allocation request: candidates must be a non-empty list");
@@ -191,9 +195,8 @@ export function computeAllocation({ budget, candidates } = {}) {
   for (const candidate of candidates) {
     if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)
         || typeof candidate.id !== "string" || candidate.id.trim() === ""
-        || !isFiniteNumber(candidate.cost) || candidate.cost <= 0
-        || !isFiniteNumber(candidate.benefit) || candidate.benefit <= 0) {
-      throw new Error("not an admissible attention allocation request: each candidate requires a non-empty id and a positive finite cost and benefit");
+        || !isSafeNat(candidate.cost) || !isSafeNat(candidate.benefit)) {
+      throw new Error("not theorem-admissible attention allocation request: each candidate requires a non-empty id and positive finite cost and benefit safe integer settlement units");
     }
     if (seen.has(candidate.id)) {
       throw new Error(`not an admissible attention allocation request: duplicate candidate id ${candidate.id}`);
