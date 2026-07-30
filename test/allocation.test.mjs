@@ -70,6 +70,7 @@ test("above the exact-enumeration limit the greedy fallback runs and does not cl
   const result = computeAllocation({ budget: 1000, candidates });
   assert.equal(result.exact, false);
   assert.equal(result.choiceBits, null);
+  assert.equal(result.theoremReceipt, null);
 });
 
 test("inadmissible requests are refused", () => {
