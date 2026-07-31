@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test, { after, before } from "node:test";
 
-import { startRwilProviderProcess } from "@lenticule-science/rwil-rdf-projection-service/test-provider";
+import { startRwilProviderProcess } from "@lenticule-science/witness-journal-rdf-projection-service/test-provider";
 
 import { run, semanticDigest } from "../src/contract-attention-allocation.mjs";
 import { ATTENTION_ALLOCATION_CONTRACT } from "../src/law.mjs";
@@ -81,7 +81,7 @@ test("the exact RMN law settles a source-attested allocation readout through RWI
   assert.ok(result.object.exchange.resources.timeMilliseconds >= 0);
   const graphDirectory = join(root, "rwil", "2026", "07", "23");
   assert.equal(readdirSync(graphDirectory).length >= 3, true);
-  assert.equal(readFileSync(join(graphDirectory, readdirSync(graphDirectory)[0]), "utf8").includes("urn:emsenn:rwil:category"), true);
+  assert.equal(readFileSync(join(graphDirectory, readdirSync(graphDirectory)[0]), "utf8").includes("urn:emsenn:witness-journal:category"), true);
 });
 
 test("an inadmissible budget is refused during solicitation", async (t) => {

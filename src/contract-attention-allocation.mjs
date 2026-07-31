@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 
 import { semanticId } from "@red-cup-engineering/rmn-semantic-conformance";
 import { encodeRelationalValue } from "@red-cup-engineering/rmn-semantic-conformance/relational-value";
-import { createSettlementStore } from "@lenticule-science/rwil-rdf-projection-service/client";
+import { createSettlementStore } from "@lenticule-science/witness-journal-rdf-projection-service/client";
 
 import { ATTENTION_ALLOCATION_CONTRACT } from "./law.mjs";
 import { attestMathematicalSources, computeAllocation } from "./allocation.mjs";
