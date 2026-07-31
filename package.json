@@ -10,43 +10,6 @@
     "micro-enterprise",
     "lenticule-science"
   ],
-  "x-agentic-metro-enterprise": {
-    "node-id": "attention-allocation-readout",
-    "actor": "urn:ame:attention-allocation-readout",
-    "organizational-kind": "micro-enterprise",
-    "owners": [
-      "obsmetrological-services-section"
-    ],
-    "service-level": "union",
-    "admission": "the exact normalized RMN attention-allocation law carried by an ActivityStreams solicitation with an admissible budget and candidate list",
-    "refusal": "invalid input, source drift, cross-settlement mutation, an unqualified equivalence claim, or unsettled pricing authority",
-    "implemented-operations": [
-      "attest-mathematical-source-bytes",
-      "compute-monotone-budget-allocation",
-      "serve-activitystreams-contract-over-stdio",
-      "issue-provider-local-rwil-receipt-and-causal-evidence",
-      "measure-local-resource-use",
-      "declare-resource-vector-price-terms"
-    ],
-    "unimplemented-operations": [
-      "formally-verified-Lean-extraction",
-      "ActivityPub-federation",
-      "x402-settlement",
-      "public-network-deployment"
-    ],
-    "operation-catalog": {
-      "solicit-service": {
-        "contract": "ni:///sha-256;FH3fxaoIu9RIuEA_xQ1gfwUx6kwkDTEBbnZGZtHnYpU",
-        "accepts": "ActivityStreams Offer<ServiceSolicitation>",
-        "returns": "ActivityStreams Offer|Reject"
-      },
-      "invoke-service": {
-        "contract": "ni:///sha-256;FH3fxaoIu9RIuEA_xQ1gfwUx6kwkDTEBbnZGZtHnYpU",
-        "accepts": "ActivityStreams Accept<ServiceContract>",
-        "returns": "ActivityStreams Accept|Reject"
-      }
-    }
-  },
   "bin": {
     "solicit-service": "./src/contract-attention-allocation.mjs",
     "invoke-service": "./src/contract-attention-allocation.mjs"
@@ -56,28 +19,8 @@
     "verify": "node src/verify-enterprise.mjs && node --check src/law.mjs && node --check src/allocation.mjs && node --check src/contract-attention-allocation.mjs && node --test test/*.test.mjs"
   },
   "dependencies": {
-    "@red-cup-engineering/rmn-semantic-conformance": "6.0.0",
+    "@red-cup-engineering/rmn-semantic-conformance": "6.0.1",
     "@lenticule-science/rwil-rdf-projection-service": "1.0.2"
   },
-  "license": "UNLICENSED",
-  "x-semiotic-voxel": {
-    "profile": "org.harmonious-union.semiotic-voxel.v1",
-    "owner": "lenticule-science",
-    "kind": "actor",
-    "actor": "urn:ame:attention-allocation-readout",
-    "operations": [
-      "invoke-service",
-      "solicit-service"
-    ],
-    "capabilities": [
-      {
-        "capability": "attention-allocation-readout",
-        "faces": [
-          "invoke-service",
-          "solicit-service"
-        ]
-      }
-    ],
-    "package": "@lenticule-science/attention-allocation-readout-service"
-  }
+  "license": "UNLICENSED"
 }
