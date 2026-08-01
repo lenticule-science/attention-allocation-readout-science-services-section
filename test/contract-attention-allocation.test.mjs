@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test, { after, before } from "node:test";
 
-import { startRwilProviderProcess } from "@lenticule-science/witness-journal-rdf-projection-service/test-provider";
+import { startWitnessJournalProviderProcess } from "@lenticule-science/witness-journal-rdf-projection-service/test-provider";
 
 import { run, semanticDigest } from "../src/contract-attention-allocation.mjs";
 import { ATTENTION_ALLOCATION_CONTRACT } from "../src/law.mjs";
@@ -13,10 +13,10 @@ const CONTEXT = "https://www.w3.org/ns/activitystreams";
 const PROVIDER = "urn:ame:attention-allocation-readout";
 const BUYER = "urn:ame:test-union-customer";
 const AT = "2026-07-23T16:00:00.000Z";
-let rwil;
+let witnessJournal;
 
-before(async () => { rwil = await startRwilProviderProcess(); });
-after(async () => { await rwil?.close(); });
+before(async () => { witnessJournal = await startWitnessJournalProviderProcess(); });
+after(async () => { await witnessJournal?.close(); });
 
 function solicitation(request = {
   budget: 5,
@@ -36,13 +36,13 @@ function acceptance(offer, overrides = {}) {
       termsAcceptance: { termDigest: offer.object.termsDigest },
       capability: { type: "Capability", holder: PROVIDER, invocationTarget: PROVIDER, parentOffer: offer.id,
         attenuation: { requestDigest: offer.object.requestDigest }, capTP: { target: PROVIDER, method: "invoke-service" },
-        allowedActions: ["invoke-service", "provider-local-rwil-evidence"] }, ...overrides } };
+        allowedActions: ["invoke-service", "provider-local-witness-journal-evidence"] }, ...overrides } };
 }
 async function execute(activity, operation, root) {
-  return run(activity, operation, AT, { dataRoot: root, agentUrl: rwil.agentCardUrl });
+  return run(activity, operation, AT, { dataRoot: root, agentUrl: witnessJournal.agentCardUrl });
 }
 
-test("the exact RMN law settles a source-attested allocation readout through RWIL", async (t) => {
+test("the exact RMN law settles a source-attested allocation readout through WitnessJournal", async (t) => {
   const root = mkdtempSync(join(tmpdir(), "attention-allocation-contract-test-")); t.after(() => rmSync(root, { recursive: true, force: true }));
   const offer = await execute(solicitation(), "solicit-service", root);
   assert.equal(offer.type, "Offer"); assert.equal(offer.object.requestDigest, semanticDigest(offer.object.request));
@@ -79,7 +79,7 @@ test("the exact RMN law settles a source-attested allocation readout through RWI
   assert.ok(result.object.exchange.resources.peakRssBytes > 0);
   assert.equal(typeof result.object.exchange.resources.timeMilliseconds, "number");
   assert.ok(result.object.exchange.resources.timeMilliseconds >= 0);
-  const graphDirectory = join(root, "rwil", "2026", "07", "23");
+  const graphDirectory = join(root, "witnessJournal", "2026", "07", "23");
   assert.equal(readdirSync(graphDirectory).length >= 3, true);
   assert.equal(readFileSync(join(graphDirectory, readdirSync(graphDirectory)[0]), "utf8").includes("urn:emsenn:witness-journal:category"), true);
 });
@@ -111,6 +111,6 @@ test("altered terms and wrong laws are refused without a readout", async (t) => 
   assert.equal(refused.type, "Reject");
 });
 
-test("absence of the hired RWIL provider fails closed", async () => {
-  await assert.rejects(run(solicitation(), "solicit-service", AT, { dataRoot: mkdtempSync(join(tmpdir(), "attention-allocation-no-rwil-")) }), /RWIL_RDF_AGENT/u);
+test("absence of the hired WitnessJournal provider fails closed", async () => {
+  await assert.rejects(run(solicitation(), "solicit-service", AT, { dataRoot: mkdtempSync(join(tmpdir(), "attention-allocation-no-witness-journal-")) }), /WITNESS_JOURNAL_RDF_AGENT/u);
 });

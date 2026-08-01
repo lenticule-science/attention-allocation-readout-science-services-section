@@ -14,7 +14,7 @@ import { attestMathematicalSources, computeAllocation } from "./allocation.mjs";
 const CONTEXT = "https://www.w3.org/ns/activitystreams";
 const ACTOR = "urn:ame:attention-allocation-readout";
 const NODE_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const EFFECTS = ["provider-local-rwil-evidence"];
+const EFFECTS = ["provider-local-witness-journal-evidence"];
 
 // Resource-price declaration: which of the leader-movement-team's six
 // canonical resource dimensions (asset/compute/erasure/gas/time/wit, per
@@ -127,7 +127,7 @@ async function solicit(store, activity, at) {
     erasureInterchangeabilityClaimed: false, gasInterchangeabilityClaimed: false, resourcePrice: resourcePrice() };
   const object = { type: "ExecutableServiceOffer", law: ATTENTION_ALLOCATION_CONTRACT, sourceActivity: activity.id,
     request, requestDigest: semanticDigest(request), terms, termsDigest: semanticDigest(terms), operation: "invoke-service",
-    effects: EFFECTS, evidence: ["source-attestation", "provider-local-rwil-evidence", "typed-resource-measures", "completion-or-typed-refusal"] };
+    effects: EFFECTS, evidence: ["source-attestation", "provider-local-witness-journal-evidence", "typed-resource-measures", "completion-or-typed-refusal"] };
   const offer = response("Offer", activity, object, at); await append(store, "offers", offer); return offer;
 }
 function invocationProblem(activity) {
@@ -142,7 +142,7 @@ function invocationProblem(activity) {
   if (capability?.type !== "Capability" || capability.holder !== ACTOR || capability.invocationTarget !== ACTOR) return "invocation requires a capability held by this provider";
   if (capability.parentOffer !== offer.id || capability.attenuation?.requestDigest !== offer.object.requestDigest) return "capability is not attenuated to the accepted offer";
   if (capability.capTP?.target !== ACTOR || capability.capTP.method !== "invoke-service" || !(capability.allowedActions ?? []).includes("invoke-service")) return "capability does not authorize the exact invoke-service method";
-  if (!EFFECTS.every((effect) => (capability.allowedActions ?? []).includes(effect)) || (capability.allowedActions ?? []).includes("customer-write")) return "capability must permit only provider-local RWIL evidence";
+  if (!EFFECTS.every((effect) => (capability.allowedActions ?? []).includes(effect)) || (capability.allowedActions ?? []).includes("customer-write")) return "capability must permit only provider-local WitnessJournal evidence";
   return null;
 }
 async function invoke(store, activity, at) {
@@ -177,7 +177,7 @@ async function invoke(store, activity, at) {
 
 export async function run(activity, op = "invoke-service", at = new Date().toISOString(), options = {}) {
   const dataRoot = resolve(options.dataRoot ?? process.env.ATTENTION_ALLOCATION_READOUT_DATA_ROOT ?? join(NODE_ROOT, "data"));
-  const store = createSettlementStore({ settlementRoot: NODE_ROOT, agentUrl: options.agentUrl ?? process.env.RWIL_RDF_AGENT });
+  const store = createSettlementStore({ settlementRoot: NODE_ROOT, agentUrl: options.agentUrl ?? process.env.WITNESS_JOURNAL_RDF_AGENT });
   if (op === "solicit-service") return solicit(store, activity, at);
   if (op === "invoke-service") return invoke(store, activity, at);
   return reject(store, activity, `unknown-provider-operation:${op}`, at);
