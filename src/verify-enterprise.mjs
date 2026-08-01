@@ -4,7 +4,6 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { attestMathematicalSources } from "./allocation.mjs";
-import { ATTENTION_ALLOCATION_CONTRACT } from "./law.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const required = [
@@ -13,7 +12,6 @@ const required = [
   "lib/management/roster.json",
   "content/offices/attention-allocation-broker.json",
   "content/services/attention-allocation-readout.json",
-  "content/contracts/attention-allocation-readout.rml",
   "src/allocation.mjs",
   "src/contract-attention-allocation.mjs",
   "test/allocation.test.mjs",
@@ -33,9 +31,6 @@ if (!enterprise?.["implemented-operations"]?.includes("serve-activitystreams-con
   failures.push("ActivityStreams contract operation is not advertised");
 }
 for (const operation of ["solicit-service", "invoke-service"]) {
-  if (enterprise?.["operation-catalog"]?.[operation]?.contract !== ATTENTION_ALLOCATION_CONTRACT) {
-    failures.push(`${operation} does not bind the exact normalized RMN law`);
-  }
   if (manifest.bin?.[operation] !== "./src/contract-attention-allocation.mjs") {
     failures.push(`bin.${operation} does not point at the contract CLI`);
   }

@@ -16,7 +16,7 @@
   },
   "scripts": {
     "test": "node --test test/*.test.mjs",
-    "verify": "node src/verify-enterprise.mjs && node --check src/law.mjs && node --check src/allocation.mjs && node --check src/contract-attention-allocation.mjs && node --test test/*.test.mjs"
+    "verify": "node src/verify-enterprise.mjs && node --check src/allocation.mjs && node --check src/contract-attention-allocation.mjs && node --test test/*.test.mjs"
   },
   "dependencies": {
     "@red-cup-engineering/rmn-semantic-conformance": "6.0.2",

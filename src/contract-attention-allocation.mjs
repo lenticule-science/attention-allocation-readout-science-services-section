@@ -8,7 +8,6 @@ import { semanticId } from "@red-cup-engineering/rmn-semantic-conformance";
 import { encodeRelationalValue } from "@red-cup-engineering/rmn-semantic-conformance/relational-value";
 import { createSettlementStore } from "@lenticule-science/witness-journal-rdf-projection-service/client";
 
-import { ATTENTION_ALLOCATION_CONTRACT } from "./law.mjs";
 import { attestMathematicalSources, computeAllocation } from "./allocation.mjs";
 
 const CONTEXT = "https://www.w3.org/ns/activitystreams";
@@ -75,13 +74,13 @@ function operation() {
 function instant() { const index = process.argv.indexOf("--now"); return index >= 0 ? process.argv[index + 1] : new Date().toISOString(); }
 function response(type, source, object, at) {
   return identify({ "@context": CONTEXT, type, actor: ACTOR, target: source?.actor ?? null,
-    inReplyTo: source?.id ?? null, law: ATTENTION_ALLOCATION_CONTRACT, object, published: at });
+    inReplyTo: source?.id ?? null, object, published: at });
 }
 async function append(store, category, record) {
   await store.record({ category: `attention-allocation-readout-${category}`, recordedAt: record.published ?? record.recordedAt, record });
 }
 async function reject(store, source, reason, at) {
-  const value = response("Reject", source, { type: "AttentionAllocationReadoutRefusal", law: ATTENTION_ALLOCATION_CONTRACT,
+  const value = response("Reject", source, { type: "AttentionAllocationReadoutRefusal",
     reason, prohibitedEffectsPerformed: false, customerMutation: false, foreignMutation: false }, at);
   await append(store, "refusals", value); return value;
 }
@@ -116,16 +115,15 @@ export function requestProblem(request) {
 function solicitationProblem(activity) {
   if (activity?.["@context"] !== CONTEXT || activity.type !== "Offer" || activity.target !== ACTOR
       || activity.object?.type !== "ServiceSolicitation") return "solicitation must be an ActivityStreams Offer<ServiceSolicitation> addressed to Attention Allocation Readout";
-  if (activity.object.contract !== ATTENTION_ALLOCATION_CONTRACT) return "solicitation must name the exact normalized RMN law";
   return requestProblem(activity.object.request);
 }
 async function solicit(store, activity, at) {
   const invalid = solicitationProblem(activity); if (invalid) return reject(store, activity, invalid, at);
   const request = structuredClone(activity.object.request);
-  const terms = { type: "UnpricedServiceTerms", law: ATTENTION_ALLOCATION_CONTRACT, assetPaymentRequired: false,
+  const terms = { type: "UnpricedServiceTerms", assetPaymentRequired: false,
     resourceMeasures: ["compute-seconds", "wall-time-seconds"], witInterchangeabilityClaimed: false,
     erasureInterchangeabilityClaimed: false, gasInterchangeabilityClaimed: false, resourcePrice: resourcePrice() };
-  const object = { type: "ExecutableServiceOffer", law: ATTENTION_ALLOCATION_CONTRACT, sourceActivity: activity.id,
+  const object = { type: "ExecutableServiceOffer", sourceActivity: activity.id,
     request, requestDigest: semanticDigest(request), terms, termsDigest: semanticDigest(terms), operation: "invoke-service",
     effects: EFFECTS, evidence: ["source-attestation", "provider-local-witness-journal-evidence", "typed-resource-measures", "completion-or-typed-refusal"] };
   const offer = response("Offer", activity, object, at); await append(store, "offers", offer); return offer;
@@ -133,9 +131,9 @@ async function solicit(store, activity, at) {
 function invocationProblem(activity) {
   if (activity?.["@context"] !== CONTEXT || activity.type !== "Accept" || activity.target !== ACTOR) return "invocation must be an ActivityStreams Accept addressed to Attention Allocation Readout";
   const contract = activity.object; const offer = contract?.offer; const terms = offer?.object?.terms;
-  if (contract?.type !== "ServiceContract" || contract.law !== ATTENTION_ALLOCATION_CONTRACT) return "invocation must accept the exact normalized RMN law";
-  if (offer?.type !== "Offer" || offer.actor !== ACTOR || offer.law !== ATTENTION_ALLOCATION_CONTRACT || !contentValid(offer)
-      || offer.object?.type !== "ExecutableServiceOffer" || offer.object.law !== ATTENTION_ALLOCATION_CONTRACT) return "ServiceContract must carry this provider's exact authored offer";
+  if (contract?.type !== "ServiceContract") return "invocation must accept a ServiceContract";
+  if (offer?.type !== "Offer" || offer.actor !== ACTOR || !contentValid(offer)
+      || offer.object?.type !== "ExecutableServiceOffer") return "ServiceContract must carry this provider's exact authored offer";
   if (offer.object.requestDigest !== semanticDigest(offer.object.request)) return "accepted request differs from provider-authored term";
   if (offer.object.termsDigest !== semanticDigest(terms) || contract.termsAcceptance?.termDigest !== offer.object.termsDigest) return "customer did not accept the provider-authored terms";
   const capability = contract.capability;
@@ -163,13 +161,13 @@ async function invoke(store, activity, at) {
     // die never quoted an erasure price, so there is nothing to audit here.
     cpuMicroseconds: cpu.user + cpu.system, peakRssBytes: process.resourceUsage().maxRSS * 1024,
     timeMilliseconds: Number(wallNanoseconds) / 1e6 };
-  const exchange = identify({ type: "AttentionAllocationReadout", law: ATTENTION_ALLOCATION_CONTRACT, outcome: "completion",
+  const exchange = identify({ type: "AttentionAllocationReadout", outcome: "completion",
     request, requestDigest: offer.object.requestDigest, result, quotedResourcePrice: offer.object.terms.resourcePrice,
     resources, recordedAt: at, customerMutation: false, foreignMutation: false });
-  const receipt = identify({ type: "ServicePerformanceReceipt", law: ATTENTION_ALLOCATION_CONTRACT, provider: ACTOR,
+  const receipt = identify({ type: "ServicePerformanceReceipt", provider: ACTOR,
     customer: activity.actor, offer: offer.id, invocation: activity.id, fulfillment: exchange.id,
     outcome: exchange.outcome, recordedAt: at, assetSettlementClaimed: false });
-  const reply = response("Accept", activity, { type: "AttentionAllocationReadoutResult", law: ATTENTION_ALLOCATION_CONTRACT,
+  const reply = response("Accept", activity, { type: "AttentionAllocationReadoutResult",
     exchange, receipt, customerMutation: false, foreignMutation: false }, at);
   await append(store, "readouts", exchange); await append(store, "receipts", receipt); await append(store, "results", reply);
   return reply;

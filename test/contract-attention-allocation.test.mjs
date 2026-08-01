@@ -7,7 +7,6 @@ import test, { after, before } from "node:test";
 import { startWitnessJournalProviderProcess } from "@lenticule-science/witness-journal-rdf-projection-service/test-provider";
 
 import { run, semanticDigest } from "../src/contract-attention-allocation.mjs";
-import { ATTENTION_ALLOCATION_CONTRACT } from "../src/law.mjs";
 
 const CONTEXT = "https://www.w3.org/ns/activitystreams";
 const PROVIDER = "urn:ame:attention-allocation-readout";
@@ -28,11 +27,11 @@ function solicitation(request = {
   authority: { controller: BUYER, basis: "test fixture" },
 }) {
   return { "@context": CONTEXT, id: "urn:test:allocation-solicitation", type: "Offer", actor: BUYER, target: PROVIDER,
-    object: { type: "ServiceSolicitation", contract: ATTENTION_ALLOCATION_CONTRACT, request } };
+    object: { type: "ServiceSolicitation", request } };
 }
 function acceptance(offer, overrides = {}) {
   return { "@context": CONTEXT, id: "urn:test:allocation-acceptance", type: "Accept", actor: BUYER, target: PROVIDER,
-    object: { type: "ServiceContract", law: ATTENTION_ALLOCATION_CONTRACT, offer,
+    object: { type: "ServiceContract", offer,
       termsAcceptance: { termDigest: offer.object.termsDigest },
       capability: { type: "Capability", holder: PROVIDER, invocationTarget: PROVIDER, parentOffer: offer.id,
         attenuation: { requestDigest: offer.object.requestDigest }, capTP: { target: PROVIDER, method: "invoke-service" },
