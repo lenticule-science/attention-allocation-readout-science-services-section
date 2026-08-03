@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { semanticId } from "@red-cup-engineering/relation-model-notation-runtime";
+import { jsonId } from "./semantic-identity.mjs";
 import { encodeRelationalValue } from "@red-cup-engineering/relation-model-notation-runtime/relational-value";
 import { createSettlementStore } from "@red-cup-engineering/witness-journal-rdf-projection-service/client";
 
@@ -61,7 +61,7 @@ function resourcePrice() {
 
 export function semanticDigest(value) {
   const relational = encodeRelationalValue(value);
-  return semanticId(["ascribe", relational.type, relational.term]);
+  return jsonId(["ascribe", relational.type, relational.term], "lenticule.attention-allocation.record");
 }
 function identify(body) { return { id: semanticDigest(body), ...body }; }
 function contentValid(value) { const { id: _id, ...body } = value ?? {}; return value?.id === semanticDigest(body); }
