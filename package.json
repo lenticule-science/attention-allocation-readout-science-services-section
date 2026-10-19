@@ -23,5 +23,9 @@
     "@red-cup-engineering/relation-model-notation-runtime": "7.0.0",
     "@red-cup-engineering/witness-journal-rdf-projection-service": "1.1.0"
   },
-  "license": "UNLICENSED"
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lenticule-science/attention-allocation-readout-service.git"
+  }
 }
