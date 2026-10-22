@@ -30,4 +30,4 @@ jobs:
       paths: '["."]'
       install: false
       check: false
-      test-script: test:attention
+      test-script: test:source
