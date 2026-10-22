@@ -30,14 +30,14 @@
 
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
+import { join, resolve } from "node:path";
 
 const SOURCES = [
   {
     declarationFile: "Obsmetrologia/Cohomology/AttentionAllocation.lean",
-    url: new URL("../../../../../lib/obsmetrologia/Obsmetrologia/Cohomology/AttentionAllocation.lean", import.meta.url),
     sha256: "d4b79f8f28da3276b684d8271f1f9c8ffe87d96220c7081440bb6a3f1ad646f4",
   },
-  { declarationFile: "Obsmetrologia/Cohomology/AllocationSolver.lean", url: new URL("../../../../../lib/obsmetrologia/Obsmetrologia/Cohomology/AllocationSolver.lean", import.meta.url), sha256: "690143f5487ffda3527d9af80ea0c42cae09636219158f3f66fb43c390849393" },
+  { declarationFile: "Obsmetrologia/Cohomology/AllocationSolver.lean", sha256: "690143f5487ffda3527d9af80ea0c42cae09636219158f3f66fb43c390849393" },
 ];
 
 const DECLARATIONS = [
@@ -60,28 +60,43 @@ function sha256(bytes) {
   return createHash("sha256").update(bytes).digest("hex");
 }
 
-export function attestMathematicalSources() {
-  const observed = SOURCES.map((source) => {
-    const digest = sha256(readFileSync(source.url));
-    return {
-      file: source.declarationFile,
-      expectedSha256: source.sha256,
-      observedSha256: digest,
-      matches: digest === source.sha256,
-    };
+/**
+ * Read the original PRIVATE mathematical owner through an explicitly selected,
+ * trusted host source root. Never copy private Lean bytes into this public
+ * package or fetch a mutable remote HEAD at invocation time.
+ *
+ * No mounted original source is a truthful 'unavailable', not a digest match,
+ * a proof receipt, or a reason to suppress a separately labeled numeric
+ * calculation. Any original-source drift remains visible and unqualified.
+ */
+export function attestMathematicalSources({ sourceRoot = process.env.OBSMETROLOGIA_SOURCE_ROOT } = {}) {
+  const root = typeof sourceRoot === "string" && sourceRoot.trim() ? resolve(sourceRoot) : null;
+  const sources = SOURCES.map(source => {
+    const core = { file: source.declarationFile, expectedSha256: source.sha256 };
+    if (root === null) return { ...core, observedSha256: null, matches: false, status: "source-unavailable" };
+    let bytes;
+    try { bytes = readFileSync(join(root, source.declarationFile)); }
+    catch (error) {
+      if (error?.code !== "ENOENT") throw new Error("original mathematical source unreadable: source access refused");
+      return { ...core, observedSha256: null, matches: false, status: "source-unavailable" };
+    }
+    const digest = sha256(bytes);
+    return { ...core, observedSha256: digest, matches: digest === source.sha256,
+      status: digest === source.sha256 ? "matched" : "source-drift" };
   });
-  const drift = observed.filter((record) => !record.matches);
-  if (drift.length) {
-    throw new Error("admitted Obsmetrologia source bytes have drifted; conformance evidence is stale");
-  }
+  const qualified = sources.every(source => source.status === "matched");
   return {
     library: "@lenticule-science/obsmetrologia",
-    sources: observed,
-    declarations: DECLARATIONS,
+    owner: "lenticule-science/obsmetrologia (private source; not bundled)",
+    status: qualified ? "source-qualified" : sources.some(s => s.status === "source-drift")
+      ? "source-drift" : "source-unavailable",
+    qualified, sources, declarations: DECLARATIONS,
     assurance: {
-      kind: "source-pinned-executable-projection",
-      conformance: "Lean examples and JavaScript regression vectors exercise the same admitted monotone-budget-allocation cases",
-      limitation: "the JavaScript is separately implemented and is not a formally verified extraction from Lean; theorem receipts require safe natural settlement units and the exact recursive solver; greedy remains outside those claims",
+      kind: qualified ? "source-pinned-executable-projection" : "unattested-numeric-projection",
+      conformance: qualified
+        ? "Exact pinned private Lean source digests matched on the executing owner-controlled host; source matching is not a kernel proof or extraction"
+        : "No original mathematical theorem receipt: the current private source is not independently matched on this host",
+      limitation: "JavaScript is separately implemented, not formally verified extraction; a theorem receipt additionally requires finite safe natural settlement units, exact exhaustive selection, current source digests and independent proof receiving",
     },
   };
 }
@@ -154,7 +169,7 @@ function exactAllocate(candidates, budget, theoremEligible = false) {
     fundedCount: funded.length,
     choiceBits: tieSetSize > 0 ? Math.log2(tieSetSize) : 0,
     exact: true,
-    theoremReceipt: theoremEligible ? Object.freeze({ kind: "obsmetrologia.attention.solveL:witness", theorems: Object.freeze([
+    theoremReceipt: theoremEligible && attestMathematicalSources().qualified ? Object.freeze({ kind: "obsmetrologia.attention.solveL:witness", theorems: Object.freeze([
       "Obsmetrologia.Cohomology.Attention.solveL_feasible", "Obsmetrologia.Cohomology.Attention.solveL_optimal",
       "Obsmetrologia.Cohomology.Attention.solvers_agree_value", "Obsmetrologia.Cohomology.Attention.solveL_isOptimum",
     ]), source: attestMathematicalSources().sources.find((source) => source.file === "Obsmetrologia/Cohomology/AllocationSolver.lean"), premises: "safe natural settlement units; exhaustive powerset search" }) : null,
