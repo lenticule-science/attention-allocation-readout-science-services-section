@@ -31,3 +31,11 @@ jobs:
       install: false
       check: false
       test-script: test:source
+  provider-contract:
+    uses: red-cup-engineering/continuous-delivery-services-section/.github/workflows/node-package.yml@5a584886407eee8bedc38e55b4eb017626a5dd07
+    with:
+      runs-on: '["ubuntu-latest"]'
+      paths: '["."]'
+      install: true
+      check: false
+      test-script: test
