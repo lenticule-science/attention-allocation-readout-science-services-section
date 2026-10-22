@@ -128,3 +128,10 @@ test("an excessively wide exact Pareto set is disclosed rather than truncated", 
   assert.equal(result.intake.length, 9);
   assert.deepEqual(result.alternatives, []);
 });
+
+test("cyclic prerequisites refuse an impossible sequential attention plan", () => {
+  const a = candidate("a", { "urn:condition:one": 1 }, { requires: ["b"] });
+  const b = candidate("b", { "urn:condition:two": 1 }, { requires: ["a"] });
+  assert.match(frontierProblem(request([a, b])), /cyclic requires/);
+  assert.throws(() => computeAttentionFrontier(request([a, b])), /cyclic requires/);
+});
