@@ -74,6 +74,24 @@ export function frontierProblem(request) {
       }
     }
   }
+  // A directed prerequisite cycle is not an executable sequential plan, even
+  // if its members could be selected together as an algebraic closed set.
+  const indegree = new Map(request.candidates.map((c) => [c.id, (c.requires ?? []).length]));
+  const dependents = new Map(request.candidates.map((c) => [c.id, []]));
+  for (const c of request.candidates) {
+    for (const dependency of c.requires ?? []) dependents.get(dependency).push(c.id);
+  }
+  const ready = request.candidates.filter((c) => indegree.get(c.id) === 0).map((c) => c.id);
+  let visited = 0;
+  while (ready.length > 0) {
+    const id = ready.pop();
+    visited += 1;
+    for (const dependent of dependents.get(id)) {
+      indegree.set(dependent, indegree.get(dependent) - 1);
+      if (indegree.get(dependent) === 0) ready.push(dependent);
+    }
+  }
+  if (visited !== request.candidates.length) return "cyclic requires: sequential prerequisites cannot all precede each other";
   return null;
 }
 
