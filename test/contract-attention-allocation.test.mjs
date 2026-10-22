@@ -63,7 +63,13 @@ test("the exact RMN law settles a source-attested allocation readout through Wit
   assert.equal(result.type, "Accept");
   assert.deepEqual(result.object.exchange.result.funded, ["a", "b"]);
   assert.equal(result.object.exchange.result.totalBenefit, 11);
-  assert.equal(result.object.exchange.result.certificate.assurance.kind, "source-pinned-executable-projection");
+  assert.equal(result.object.exchange.result.certificate.qualified,
+    result.object.exchange.result.certificate.status === "source-qualified");
+  assert.equal(result.object.exchange.result.certificate.assurance.kind,
+    result.object.exchange.result.certificate.qualified
+      ? "source-pinned-executable-projection" : "unattested-numeric-projection");
+  if (!result.object.exchange.result.certificate.qualified)
+    assert.equal(result.object.exchange.result.theoremReceipt, null);
   assert.equal(result.object.receipt.provider, PROVIDER); assert.equal(result.object.customerMutation, false);
   assert.equal(result.object.receipt.assetSettlementClaimed, false);
   assert.deepEqual(Object.keys(result.object.exchange.resources).sort(),
