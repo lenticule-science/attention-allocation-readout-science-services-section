@@ -3,11 +3,18 @@ import { test } from "node:test";
 
 import { allocateBudget, attestMathematicalSources, computeAllocation } from "../src/allocation.mjs";
 
-test("admitted mathematical source bytes still match", () => {
+test("private original mathematical sources are independently qualified or explicitly unavailable", () => {
   const attestation = attestMathematicalSources();
-  assert.equal(attestation.sources.every((source) => source.matches), true);
-  assert.match(attestation.assurance.limitation, /not a formally verified extraction/);
+  assert.equal(attestation.qualified, attestation.sources.every(source => source.matches));
+  assert.match(attestation.assurance.limitation, /not formally verified extraction/);
   assert.match(attestation.assurance.limitation, /safe natural settlement units/);
+  assert.equal(attestation.sources.length, 2);
+  assert.ok(attestation.sources.every(source => source.expectedSha256.length === 64));
+  if (!process.env.OBSMETROLOGIA_SOURCE_ROOT) {
+    assert.equal(attestation.status, "source-unavailable");
+    assert.equal(attestation.qualified, false);
+    assert.equal(attestation.sources.every(source => source.observedSha256 === null), true);
+  }
 });
 
 test("the exact optimum is chosen within budget", () => {
@@ -26,7 +33,12 @@ test("the exact optimum is chosen within budget", () => {
   assert.equal(result.fundedCount, 2);
   assert.equal(result.choiceBits, 0);
   assert.equal(result.exact, true);
-  assert.equal(result.theoremReceipt.theorems[0], "Obsmetrologia.Cohomology.Attention.solveL_feasible");
+  if (attestMathematicalSources().qualified) {
+    assert.equal(result.theoremReceipt.theorems[0], "Obsmetrologia.Cohomology.Attention.solveL_feasible");
+  } else {
+    assert.equal(result.theoremReceipt, null,
+      "public scalar arithmetic without verified private Lean bytes cannot claim a theorem receipt");
+  }
 });
 
 test("a tighter budget funds only the single affordable candidate", () => {
@@ -104,4 +116,24 @@ test("unsafe aggregate suppresses theorem receipt", () => {
 test("Lean solveL chirality keeps the second equal-benefit bead", () => {
   const result = computeAllocation({ budget: 2, candidates: [{ id: "bead1", cost: 1, benefit: 5 }, { id: "bead2", cost: 2, benefit: 5 }] });
   assert.deepEqual(result.funded, ["bead2"]);
+});
+
+test("a declared-but-unmounted private source and a substituted fake source cannot mint a theorem receipt", async (t) => {
+  const { mkdtempSync, mkdirSync, writeFileSync, rmSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const root = mkdtempSync(join(tmpdir(), "private-math-attestation-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const absent = attestMathematicalSources({ sourceRoot: root });
+  assert.equal(absent.status, "source-unavailable");
+  assert.equal(absent.qualified, false);
+  mkdirSync(join(root, "Obsmetrologia", "Cohomology"), { recursive: true });
+  writeFileSync(join(root, "Obsmetrologia", "Cohomology", "AttentionAllocation.lean"),
+    "-- deliberately NOT the original private mathematical source");
+  const forged = attestMathematicalSources({ sourceRoot: root });
+  assert.equal(forged.status, "source-drift");
+  assert.equal(forged.qualified, false);
+  assert.ok(forged.sources.some(source => source.status === "source-drift"));
+  assert.ok(forged.sources.some(source => source.status === "source-unavailable"));
+  assert.equal(forged.sources.every(source => !Object.hasOwn(source, "content")), true);
 });
