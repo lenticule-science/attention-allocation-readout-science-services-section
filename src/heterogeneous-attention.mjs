@@ -24,13 +24,22 @@ function vectorZero() {
 }
 
 export function frontierProblem(request) {
-  if (!exactKeys(request, ["mode", "budgets", "candidates", "authority"]) ||
+  if (!exactKeys(request, ["mode", "budgets", "candidates", "authority", "sensitivity"]) ||
       request.mode !== "heterogeneous-frontier") {
     return "frontier request must carry only mode=heterogeneous-frontier, budgets, candidates, and authority";
   }
   if (!allDimensions(request.budgets)) {
     return "budgets require four explicit, non-negative, safe integer dimensions: " +
       RESOURCE_DIMENSIONS.join(", ");
+  }
+  if (request.sensitivity !== undefined) {
+    const gauge = request.sensitivity;
+    if (!exactKeys(gauge, ["resource", "increment"]) ||
+        !RESOURCE_DIMENSIONS.includes(gauge.resource) ||
+        !Number.isSafeInteger(gauge.increment) || gauge.increment <= 0 ||
+        !Number.isSafeInteger(request.budgets[gauge.resource] + gauge.increment)) {
+      return "sensitivity requires one resource dimension and an exact, bounded positive integer increment";
+    }
   }
   if (!Array.isArray(request.candidates) || request.candidates.length === 0) {
     return "frontier candidates must be a non-empty list";
@@ -109,7 +118,7 @@ function dominance(a, b, gainDimensions) {
   return strict;
 }
 
-export function computeAttentionFrontier(request) {
+function computeAttentionFrontierCore(request) {
   const problem = frontierProblem(request);
   if (problem) throw new Error(problem);
   const original = [...request.candidates].sort((a, b) => a.id.localeCompare(b.id, "en"));
@@ -201,4 +210,68 @@ export function computeAttentionFrontier(request) {
       reason: "more than " + MAX_ALTERNATIVES + " nondominated alternatives; no alternatives were silently discarded" };
   }
   return { ...common, benefitDimensions, alternatives: frontier, exact: true };
+}
+
+
+/**
+ * Finite-difference attention gauge over the SAME source-qualified Work and
+ * condition claims. The increment is hypothetical resource headroom, not a
+ * budget grant, purchased compute, a price quote or an execution permission.
+ * Marginal gains by named receiver condition are separate upper envelopes;
+ * their separate maxima need not occur in the same feasible selection.
+ * There is no universal utility, shadow-price theorem or ATT/WIT receipt.
+ */
+export function computeAttentionFrontier(request) {
+  const base = computeAttentionFrontierCore(request);
+  if (request.sensitivity === undefined) return base;
+  const {resource, increment} = request.sensitivity;
+  const gauge = {
+    kind: "attention-economics.resource-sensitivity-gauge/v1",
+    status: "indeterminate", resource, increment,
+    baselineBudget: request.budgets[resource],
+    expandedBudget: request.budgets[resource] + increment,
+    sourceStatus: base.status,
+    theoremReceipt: null,
+    authority: "conditional-readout-only",
+  };
+  if (base.status !== "exact") {
+    return { ...base, sensitivityGauge: {
+      ...gauge, reason: "baseline-frontier-not-exact; no finite difference justified",
+    } };
+  }
+  const expanded = computeAttentionFrontierCore({
+    ...request,
+    budgets: {...request.budgets, [resource]: gauge.expandedBudget},
+    sensitivity: undefined,
+  });
+  if (expanded.status !== "exact") {
+    return { ...base, sensitivityGauge: {
+      ...gauge, expandedStatus: expanded.status,
+      reason: "expanded-frontier-not-exact; no finite difference justified",
+    } };
+  }
+  const dimensions = [...new Set([...base.benefitDimensions, ...expanded.benefitDimensions])].sort();
+  const maximumAt = (frontier, condition) =>
+    frontier.alternatives.reduce((best, option) =>
+      Math.max(best, option.projected[condition] ?? 0), 0);
+  const conditionalDifferences = Object.fromEntries(dimensions.map(condition => {
+    const baselineMax = maximumAt(base, condition);
+    const expandedMax = maximumAt(expanded, condition);
+    return [condition, {
+      baselineMax, expandedMax,
+      finiteDifferencePerResourceUnit: {
+        numerator: String(expandedMax - baselineMax),
+        denominator: String(increment),
+      },
+    }];
+  }));
+  return { ...base, sensitivityGauge: {
+    ...gauge, status:"exact-conditional-comparison",
+    expandedStatus: expanded.status,
+    newlyBudgetFeasibleFrontierAlternatives: expanded.alternatives
+      .filter(option => option.cost[resource] > request.budgets[resource])
+      .map(option => ({selected:option.selected,cost:option.cost,projected:option.projected})),
+    conditionalDifferences,
+    caution:"Per-condition maxima may require incompatible alternatives. These are projected finite differences from source-supplied valuations, NOT an observed shadow price, independent Work ACK, spend authorization or actual new compute capacity.",
+  } };
 }
