@@ -93,7 +93,7 @@ export function requestProblem(request) {
       || Object.keys(request).some((key) => !["budget", "candidates", "authority"].includes(key))) {
     return "request must carry only budget, candidates, and authority";
   }
-  if (!isFiniteNumber(request.budget) || request.budget <= 0) return "budget must be a positive finite number";
+  if (!Number.isSafeInteger(request.budget) || request.budget <= 0) return "budget must be a positive finite number in safe integer settlement units";
   if (!Array.isArray(request.candidates) || request.candidates.length === 0) return "candidates must be a non-empty list";
   const seen = new Set();
   for (const candidate of request.candidates) {
@@ -102,8 +102,8 @@ export function requestProblem(request) {
       return "each candidate must carry only id, cost, and benefit";
     }
     if (typeof candidate.id !== "string" || candidate.id.trim() === "") return "each candidate id must be a non-empty string";
-    if (!isFiniteNumber(candidate.cost) || candidate.cost <= 0) return "each candidate cost must be a positive finite number";
-    if (!isFiniteNumber(candidate.benefit) || candidate.benefit <= 0) return "each candidate benefit must be a positive finite number";
+    if (!Number.isSafeInteger(candidate.cost) || candidate.cost <= 0) return "each candidate cost must be a positive finite number in safe integer settlement units";
+    if (!Number.isSafeInteger(candidate.benefit) || candidate.benefit <= 0) return "each candidate benefit must be a positive finite number in safe integer settlement units";
     if (seen.has(candidate.id)) return `duplicate candidate id ${candidate.id}`;
     seen.add(candidate.id);
   }
@@ -181,7 +181,7 @@ async function invoke(store, activity, at) {
 
 export async function run(activity, op = "invoke-service", at = new Date().toISOString(), options = {}) {
   const dataRoot = resolve(options.dataRoot ?? process.env.ATTENTION_ALLOCATION_READOUT_DATA_ROOT ?? join(NODE_ROOT, "data"));
-  const store = createSettlementStore({ settlementRoot: NODE_ROOT, agentUrl: options.agentUrl ?? process.env.WITNESS_JOURNAL_RDF_AGENT });
+  const store = createSettlementStore({ settlementRoot: dataRoot, agentUrl: options.agentUrl ?? process.env.WITNESS_JOURNAL_RDF_AGENT });
   if (op === "solicit-service") return solicit(store, activity, at);
   if (op === "invoke-service") return invoke(store, activity, at);
   return reject(store, activity, `unknown-provider-operation:${op}`, at);
