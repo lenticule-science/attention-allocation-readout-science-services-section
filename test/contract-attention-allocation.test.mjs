@@ -163,3 +163,22 @@ test("heterogeneous requests missing original provenance are refused at the exis
   assert.equal(offer.type, "Reject");
   assert.match(offer.object.reason, /source, original claim/);
 });
+
+
+test("scalar solicitation refuses unsafe Nat quantities before offering costly execution", async (t) => {
+  const root = mkdtempSync(join(tmpdir(), "attention-scalar-unsafe-nat-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  for (const request of [
+    { budget: 2.5, candidates: [{ id: "fractional-budget", cost: 1, benefit: 1 }] },
+    { budget: 3, candidates: [{ id: "fractional-cost", cost: 1.5, benefit: 1 }] },
+    { budget: 3, candidates: [{ id: "fractional-benefit", cost: 1, benefit: 1.5 }] },
+    { budget: Number.MAX_SAFE_INTEGER + 1,
+      candidates: [{ id: "unsafe-budget", cost: 1, benefit: 1 }] },
+  ]) {
+    const refusal = await execute(solicitation({
+      ...request, authority: { controller: BUYER, basis: "negative conformance case" },
+    }), "solicit-service", root);
+    assert.equal(refusal.type, "Reject");
+    assert.match(refusal.object.reason, /safe integer settlement units/);
+  }
+});
