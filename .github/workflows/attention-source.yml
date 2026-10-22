@@ -3,15 +3,17 @@ name: Source-qualified attention allocation
 on:
   pull_request:
     paths:
-      - 'src/heterogeneous-attention.mjs'
-      - 'test/heterogeneous-attention.test.mjs'
+      - 'src/**'
+      - 'test/**'
+      - 'AGENTS.md'
       - 'package.json'
       - '.github/workflows/attention-source.yml'
   push:
     branches: [main]
     paths:
-      - 'src/heterogeneous-attention.mjs'
-      - 'test/heterogeneous-attention.test.mjs'
+      - 'src/**'
+      - 'test/**'
+      - 'AGENTS.md'
       - 'package.json'
       - '.github/workflows/attention-source.yml'
   workflow_dispatch:
