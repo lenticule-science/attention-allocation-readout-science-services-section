@@ -135,3 +135,73 @@ test("cyclic prerequisites refuse an impossible sequential attention plan", () =
   assert.match(frontierProblem(request([a, b])), /cyclic requires/);
   assert.throws(() => computeAttentionFrontier(request([a, b])), /cyclic requires/);
 });
+
+
+test("one additional compute headroom gauge identifies newly affordable source Work without human reentry", () => {
+  const cheap = candidate("cheap", {"urn:condition:public-accept":1},
+    {valuation:{source:"urn:measured:budget:cheap",cost:cost(0,10,0,1),
+      benefits:{"urn:condition:public-accept":1}}});
+  const compute = candidate("compute",{"urn:condition:science-accept":2},
+    {valuation:{source:"urn:measured:budget:compute",cost:cost(0,60,0,3),
+      benefits:{"urn:condition:science-accept":2}}});
+  const r = computeAttentionFrontier(request([compute,cheap], {
+    budgets:cost(0,10,0,20),
+    sensitivity:{resource:"computeMillis",increment:50},
+  }));
+  assert.equal(r.status,"exact");
+  assert.equal(r.theoremReceipt,null);
+  assert.equal(r.sensitivityGauge.kind,"attention-economics.resource-sensitivity-gauge/v1");
+  assert.equal(r.sensitivityGauge.status,"exact-conditional-comparison");
+  assert.deepEqual(r.sensitivityGauge.newlyBudgetFeasibleFrontierAlternatives.map(x=>x.selected),[["compute"]]);
+  assert.deepEqual(r.sensitivityGauge.conditionalDifferences["urn:condition:science-accept"],{
+    baselineMax:0,expandedMax:2,
+    finiteDifferencePerResourceUnit:{numerator:"2",denominator:"50"},
+  });
+  assert.deepEqual(r.sensitivityGauge.conditionalDifferences["urn:condition:public-accept"],{
+    baselineMax:1,expandedMax:1,
+    finiteDifferencePerResourceUnit:{numerator:"0",denominator:"50"},
+  });
+  assert.equal(r.sensitivityGauge.authority,"conditional-readout-only");
+});
+
+test("sensitivity preserves base comparison, outside option, source claims and zero-cash boundary", () => {
+  const a = candidate("a",{"urn:condition:a":1},
+    {valuation:{source:"urn:valuation:a",cost:cost(0,5,0,1),benefits:{"urn:condition:a":1}}});
+  const spark = {id:"spark",kind:"hypothesis",source:"urn:leader:utterance",claim:"unpriced idea",receiver:null};
+  const plain = computeAttentionFrontier(request([a,spark],{budgets:cost(0,5,0,3)}));
+  const gauged = computeAttentionFrontier(request([a,spark],{
+    budgets:cost(0,5,0,3),sensitivity:{resource:"computeMillis",increment:5},
+  }));
+  assert.deepEqual(gauged.alternatives,plain.alternatives);
+  assert.deepEqual(gauged.held,plain.held);
+  assert.equal(gauged.intake.find(x=>x.id==="spark").claim,"unpriced idea");
+  assert.equal(gauged.budgets.cashCents,0);
+  assert.equal(gauged.sensitivityGauge.newlyBudgetFeasibleFrontierAlternatives.length,0);
+  const cashHypothetical = computeAttentionFrontier(request([a],{
+    budgets:cost(0,5,0,3),sensitivity:{resource:"cashCents",increment:1},
+  }));
+  assert.equal(cashHypothetical.sensitivityGauge.authority,"conditional-readout-only");
+  assert.equal(cashHypothetical.budgets.cashCents,0);
+});
+
+test("invalid, overflowing and indeterminate sensitivity readings refuse false prices", () => {
+  const a=candidate("a",{"urn:condition:accept":1});
+  for(const sensitivity of [
+    {resource:"tokens",increment:1},
+    {resource:"computeMillis",increment:0},
+    {resource:"computeMillis",increment:0.5},
+    {resource:"computeMillis",increment:-1},
+    {resource:"computeMillis",increment:1,granted:true},
+  ]) assert.match(frontierProblem(request([a],{sensitivity})),/sensitivity requires/);
+  assert.match(frontierProblem(request([a],{
+    budgets:cost(0,Number.MAX_SAFE_INTEGER,0,0),
+    sensitivity:{resource:"computeMillis",increment:1},
+  })),/sensitivity requires/);
+  const candidates=Array.from({length:13},(_,i)=>candidate("c"+i,{"urn:condition:useful":1}));
+  const indeterminate=computeAttentionFrontier(request(candidates,{
+    sensitivity:{resource:"computeMillis",increment:25},
+  }));
+  assert.equal(indeterminate.sensitivityGauge.status,"indeterminate");
+  assert.equal(indeterminate.sensitivityGauge.conditionalDifferences,undefined);
+  assert.equal(indeterminate.sensitivityGauge.theoremReceipt,null);
+});
