@@ -9,6 +9,7 @@ import { encodeRelationalValue } from "@red-cup-engineering/relation-model-notat
 import { createSettlementStore } from "@red-cup-engineering/witness-journal-rdf-projection-service/client";
 
 import { attestMathematicalSources, computeAllocation } from "./allocation.mjs";
+import { computeAttentionFrontier, frontierProblem } from "./heterogeneous-attention.mjs";
 
 const CONTEXT = "https://www.w3.org/ns/activitystreams";
 const ACTOR = "urn:ame:attention-allocation-readout";
@@ -87,6 +88,7 @@ async function reject(store, source, reason, at) {
 function isFiniteNumber(value) { return typeof value === "number" && Number.isFinite(value); }
 
 export function requestProblem(request) {
+  if (request?.mode === "heterogeneous-frontier") return frontierProblem(request);
   if (!request || typeof request !== "object" || Array.isArray(request)
       || Object.keys(request).some((key) => !["budget", "candidates", "authority"].includes(key))) {
     return "request must carry only budget, candidates, and authority";
@@ -148,7 +150,11 @@ async function invoke(store, activity, at) {
   const offer = activity.object.offer; const request = offer.object.request;
   const wallStart = process.hrtime.bigint(); const cpuStart = process.cpuUsage();
   let result;
-  try { result = { ...computeAllocation(request), certificate: attestMathematicalSources() }; }
+  try {
+    result = request.mode === "heterogeneous-frontier"
+      ? computeAttentionFrontier(request)
+      : { ...computeAllocation(request), certificate: attestMathematicalSources() };
+  }
   catch (error) { return reject(store, activity, `readout-could-not-settle:${error.message}`, at); }
   const cpu = process.cpuUsage(cpuStart);
   const wallNanoseconds = process.hrtime.bigint() - wallStart;
