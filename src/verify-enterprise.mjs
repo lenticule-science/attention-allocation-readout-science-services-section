@@ -35,12 +35,23 @@ for (const operation of ["solicit-service", "invoke-service"]) {
     failures.push(`bin.${operation} does not point at the contract CLI`);
   }
 }
+const sourceContractOnly = process.argv.includes("--public-source-contract");
+let sourceAttestation;
 try {
-  attestMathematicalSources();
+  sourceAttestation = attestMathematicalSources();
+  if (!sourceContractOnly && sourceAttestation.qualified !== true)
+    failures.push("private mathematical source is not digest-attested by an original host selection");
 } catch (error) {
   failures.push(error.message);
 }
-
-const result = { enterprise: "attention-allocation-readout", ok: failures.length === 0, failures };
+const result = {
+  enterprise: "attention-allocation-readout",
+  qualification: sourceContractOnly
+    ? "public-source-contract-only-no-provider-dependency-or-mathematical-proof"
+    : "full-provider-source-and-mathematical-attestation",
+  mathematicalSource: sourceAttestation?.status ?? "unavailable",
+  mathematicalSourceQualified: sourceAttestation?.qualified === true,
+  ok: failures.length === 0, failures,
+};
 process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
 if (!result.ok) process.exitCode = 1;

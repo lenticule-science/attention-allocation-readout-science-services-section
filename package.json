@@ -16,7 +16,9 @@
   },
   "scripts": {
     "test": "node --test test/*.test.mjs",
-    "verify": "node src/verify-enterprise.mjs && node --check src/allocation.mjs && node --check src/contract-attention-allocation.mjs && node --test test/*.test.mjs"
+    "test:attention": "node --test test/heterogeneous-attention.test.mjs",
+    "verify": "node src/verify-enterprise.mjs && node --check src/allocation.mjs && node --check src/contract-attention-allocation.mjs && node --test test/*.test.mjs",
+    "test:source": "node src/verify-enterprise.mjs --public-source-contract && node --test test/allocation.test.mjs test/heterogeneous-attention.test.mjs"
   },
   "dependencies": {
     "@red-cup-engineering/semantic-content-identify-service": "0.2.2",
@@ -31,5 +33,19 @@
   "funding": {
     "type": "individual",
     "url": "https://github.com/561-group/.github/blob/main/TIPS.md"
+  },
+  "x-agentic-metro-enterprise": {
+    "node-id": "attention-allocation-readout",
+    "actor": "urn:ame:attention-allocation-readout",
+    "implemented-operations": [
+      "serve-activitystreams-contract-over-stdio"
+    ],
+    "unimplemented-operations": [
+      "formally-verified-Lean-extraction",
+      "ActivityPub-delivery",
+      "cross-settlement-work-execution",
+      "x402-seller-payout"
+    ],
+    "assurance": "private mathematical source is available only through an original host-controlled mount; no source digest match or theorem receipt when unavailable"
   }
 }

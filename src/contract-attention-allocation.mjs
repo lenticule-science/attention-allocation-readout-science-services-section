@@ -9,6 +9,7 @@ import { encodeRelationalValue } from "@red-cup-engineering/relation-model-notat
 import { createSettlementStore } from "@red-cup-engineering/witness-journal-rdf-projection-service/client";
 
 import { attestMathematicalSources, computeAllocation } from "./allocation.mjs";
+import { computeAttentionFrontier, frontierProblem } from "./heterogeneous-attention.mjs";
 
 const CONTEXT = "https://www.w3.org/ns/activitystreams";
 const ACTOR = "urn:ame:attention-allocation-readout";
@@ -87,11 +88,12 @@ async function reject(store, source, reason, at) {
 function isFiniteNumber(value) { return typeof value === "number" && Number.isFinite(value); }
 
 export function requestProblem(request) {
+  if (request?.mode === "heterogeneous-frontier") return frontierProblem(request);
   if (!request || typeof request !== "object" || Array.isArray(request)
       || Object.keys(request).some((key) => !["budget", "candidates", "authority"].includes(key))) {
     return "request must carry only budget, candidates, and authority";
   }
-  if (!isFiniteNumber(request.budget) || request.budget <= 0) return "budget must be a positive finite number";
+  if (!Number.isSafeInteger(request.budget) || request.budget <= 0) return "budget must be a positive finite number in safe integer settlement units";
   if (!Array.isArray(request.candidates) || request.candidates.length === 0) return "candidates must be a non-empty list";
   const seen = new Set();
   for (const candidate of request.candidates) {
@@ -100,8 +102,8 @@ export function requestProblem(request) {
       return "each candidate must carry only id, cost, and benefit";
     }
     if (typeof candidate.id !== "string" || candidate.id.trim() === "") return "each candidate id must be a non-empty string";
-    if (!isFiniteNumber(candidate.cost) || candidate.cost <= 0) return "each candidate cost must be a positive finite number";
-    if (!isFiniteNumber(candidate.benefit) || candidate.benefit <= 0) return "each candidate benefit must be a positive finite number";
+    if (!Number.isSafeInteger(candidate.cost) || candidate.cost <= 0) return "each candidate cost must be a positive finite number in safe integer settlement units";
+    if (!Number.isSafeInteger(candidate.benefit) || candidate.benefit <= 0) return "each candidate benefit must be a positive finite number in safe integer settlement units";
     if (seen.has(candidate.id)) return `duplicate candidate id ${candidate.id}`;
     seen.add(candidate.id);
   }
@@ -148,7 +150,11 @@ async function invoke(store, activity, at) {
   const offer = activity.object.offer; const request = offer.object.request;
   const wallStart = process.hrtime.bigint(); const cpuStart = process.cpuUsage();
   let result;
-  try { result = { ...computeAllocation(request), certificate: attestMathematicalSources() }; }
+  try {
+    result = request.mode === "heterogeneous-frontier"
+      ? computeAttentionFrontier(request)
+      : { ...computeAllocation(request), certificate: attestMathematicalSources() };
+  }
   catch (error) { return reject(store, activity, `readout-could-not-settle:${error.message}`, at); }
   const cpu = process.cpuUsage(cpuStart);
   const wallNanoseconds = process.hrtime.bigint() - wallStart;
@@ -175,7 +181,7 @@ async function invoke(store, activity, at) {
 
 export async function run(activity, op = "invoke-service", at = new Date().toISOString(), options = {}) {
   const dataRoot = resolve(options.dataRoot ?? process.env.ATTENTION_ALLOCATION_READOUT_DATA_ROOT ?? join(NODE_ROOT, "data"));
-  const store = createSettlementStore({ settlementRoot: NODE_ROOT, agentUrl: options.agentUrl ?? process.env.WITNESS_JOURNAL_RDF_AGENT });
+  const store = createSettlementStore({ settlementRoot: dataRoot, agentUrl: options.agentUrl ?? process.env.WITNESS_JOURNAL_RDF_AGENT });
   if (op === "solicit-service") return solicit(store, activity, at);
   if (op === "invoke-service") return invoke(store, activity, at);
   return reject(store, activity, `unknown-provider-operation:${op}`, at);

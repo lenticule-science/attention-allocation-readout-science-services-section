@@ -63,7 +63,13 @@ test("the exact RMN law settles a source-attested allocation readout through Wit
   assert.equal(result.type, "Accept");
   assert.deepEqual(result.object.exchange.result.funded, ["a", "b"]);
   assert.equal(result.object.exchange.result.totalBenefit, 11);
-  assert.equal(result.object.exchange.result.certificate.assurance.kind, "source-pinned-executable-projection");
+  assert.equal(result.object.exchange.result.certificate.qualified,
+    result.object.exchange.result.certificate.status === "source-qualified");
+  assert.equal(result.object.exchange.result.certificate.assurance.kind,
+    result.object.exchange.result.certificate.qualified
+      ? "source-pinned-executable-projection" : "unattested-numeric-projection");
+  if (!result.object.exchange.result.certificate.qualified)
+    assert.equal(result.object.exchange.result.theoremReceipt, null);
   assert.equal(result.object.receipt.provider, PROVIDER); assert.equal(result.object.customerMutation, false);
   assert.equal(result.object.receipt.assetSettlementClaimed, false);
   assert.deepEqual(Object.keys(result.object.exchange.resources).sort(),
@@ -112,4 +118,67 @@ test("altered terms and wrong laws are refused without a readout", async (t) => 
 
 test("absence of the hired WitnessJournal provider fails closed", async () => {
   await assert.rejects(run(solicitation(), "solicit-service", AT, { dataRoot: mkdtempSync(join(tmpdir(), "attention-allocation-no-witness-journal-")) }), /WITNESS_JOURNAL_RDF_AGENT/u);
+});
+
+test("heterogeneous inquiry uses the same Offer, Accept, WitnessJournal contract without issuing a false theorem receipt", async (t) => {
+  const root = mkdtempSync(join(tmpdir(), "heterogeneous-attention-contract-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const request = {
+    mode: "heterogeneous-frontier",
+    budgets: { humanReentries: 1, computeMillis: 100, cashCents: 0, wallMinutes: 30 },
+    authority: { controller: BUYER, basis: "bounded evaluation, no Work permission" },
+    candidates: [
+      { id: "tangent", kind: "hypothesis", source: "urn:original:claim-tangent",
+        claim: "A possible scientific question, not yet valued", receiver: null },
+      { id: "focused", kind: "science-work", source: "urn:original:claim-focused",
+        claim: "A qualified competing research requirement", receiver: "urn:science:recipient",
+        valuation: { source: "urn:science:cost-estimate",
+          cost: { humanReentries: 1, computeMillis: 20, cashCents: 0, wallMinutes: 10 },
+          benefits: { "urn:science:accepted-requirement": 1 } } },
+    ],
+  };
+  const offer = await execute(solicitation(request), "solicit-service", root);
+  assert.equal(offer.type, "Offer");
+  const result = await execute(acceptance(offer), "invoke-service", root);
+  assert.equal(result.type, "Accept");
+  assert.equal(result.object.exchange.result.mode, "heterogeneous-frontier");
+  assert.equal(result.object.exchange.result.theoremReceipt, null);
+  assert.equal(result.object.exchange.result.status, "exact");
+  assert.deepEqual(result.object.exchange.result.held.map((c) => c.id), ["tangent"]);
+  assert.equal(result.object.exchange.result.intake.find((c) => c.id === "tangent").claim, request.candidates[0].claim);
+  assert.equal(result.object.exchange.result.certificate, undefined);
+  assert.equal(result.object.customerMutation, false);
+  assert.equal(result.object.receipt.assetSettlementClaimed, false);
+});
+
+test("heterogeneous requests missing original provenance are refused at the existing contract border", async (t) => {
+  const root = mkdtempSync(join(tmpdir(), "heterogeneous-attention-refusal-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const offer = await execute(solicitation({
+    mode: "heterogeneous-frontier",
+    budgets: { humanReentries: 1, computeMillis: 100, cashCents: 0, wallMinutes: 30 },
+    candidates: [{ id: "idea", kind: "hypothesis", claim: "unsourced input", receiver: null }],
+    authority: { controller: BUYER, basis: "test fixture" },
+  }), "solicit-service", root);
+  assert.equal(offer.type, "Reject");
+  assert.match(offer.object.reason, /source, original claim/);
+});
+
+
+test("scalar solicitation refuses unsafe Nat quantities before offering costly execution", async (t) => {
+  const root = mkdtempSync(join(tmpdir(), "attention-scalar-unsafe-nat-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  for (const request of [
+    { budget: 2.5, candidates: [{ id: "fractional-budget", cost: 1, benefit: 1 }] },
+    { budget: 3, candidates: [{ id: "fractional-cost", cost: 1.5, benefit: 1 }] },
+    { budget: 3, candidates: [{ id: "fractional-benefit", cost: 1, benefit: 1.5 }] },
+    { budget: Number.MAX_SAFE_INTEGER + 1,
+      candidates: [{ id: "unsafe-budget", cost: 1, benefit: 1 }] },
+  ]) {
+    const refusal = await execute(solicitation({
+      ...request, authority: { controller: BUYER, basis: "negative conformance case" },
+    }), "solicit-service", root);
+    assert.equal(refusal.type, "Reject");
+    assert.match(refusal.object.reason, /safe integer settlement units/);
+  }
 });
