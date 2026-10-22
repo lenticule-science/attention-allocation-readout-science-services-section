@@ -44,10 +44,6 @@ try {
 } catch (error) {
   failures.push(error.message);
 }
-if (sourceContractOnly && sourceAttestation?.qualified === true) {
-  // This does not change the public test's assurance scope.
-}
-
 const result = {
   enterprise: "attention-allocation-readout",
   qualification: sourceContractOnly
