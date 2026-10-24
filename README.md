@@ -8,3 +8,10 @@
 <!-- 561-group-standards:badges:end -->
 
 Union-facing OSS boundary for a qualified executable projection of the monotone-budget greedy attention allocation, grounded in Obsmetrologia mathematics.
+
+## Code
+
+This repository holds section data only. The executable code that used to live here moved to
+[`red-cup-engineering/attention-allocation-readout-service-engine`](https://github.com/red-cup-engineering/attention-allocation-readout-service-engine) (received 2026-10-24 from
+`lenticule-science/attention-allocation-readout-service@1d5b1948f03e`). That engine reads this data from `SECTION_ROOT` (default: its current working directory),
+so point `SECTION_ROOT` at a checkout of this repository.
