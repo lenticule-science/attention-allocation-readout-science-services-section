@@ -1,0 +1,43 @@
+name: Source-qualified attention allocation
+
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'test/**'
+      - 'AGENTS.md'
+      - 'package.json'
+      - '.github/workflows/attention-source.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'test/**'
+      - 'AGENTS.md'
+      - 'package.json'
+      - '.github/workflows/attention-source.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# This is original source CI Work on a public, no-secrets hosted runner.
+# It is neither enterprise Work dispatch nor an inference-capacity entitlement.
+# Reuse the canonical Red Cup test provider; don't invent a second runner.
+jobs:
+  attention-source:
+    uses: red-cup-engineering/continuous-delivery-services-section/.github/workflows/node-package.yml@5a584886407eee8bedc38e55b4eb017626a5dd07
+    with:
+      runs-on: '["ubuntu-latest"]'
+      paths: '["."]'
+      install: false
+      check: false
+      test-script: test:source
+  provider-contract:
+    uses: red-cup-engineering/continuous-delivery-services-section/.github/workflows/node-package.yml@5a584886407eee8bedc38e55b4eb017626a5dd07
+    with:
+      runs-on: '["ubuntu-latest"]'
+      paths: '["."]'
+      install: true
+      check: false
+      test-script: test
